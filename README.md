@@ -1,2 +1,2 @@
 # Regression
-Regression Projects for data analysis.
+Regression projects for data analysis.
