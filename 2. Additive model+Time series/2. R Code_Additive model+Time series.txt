@@ -1,0 +1,228 @@
+library(tidyverse)
+library(readxl)
+#install.packages("ISLR")
+library (ISLR)
+library (splines )
+
+#1
+data1<-read_excel("FullFlower.xls", col_names = TRUE,na=c("","NA"))
+data1
+dim(data1)  #1221    6
+missDOY<-sum(is.na(data1$`Full-flowering date (DOY)`));missDOY #388 row
+missAD<-sum(is.na(data1$AD));missAD;  #=0;
+
+plot(data1$`Full-flowering date (DOY)`~ data1$AD)
+g1<-lm(data1$`Full-flowering date (DOY)`~ data1$AD)
+summary(g1) # very bad fitting
+anova(g1)
+
+#cubic spline
+Full_Blooming_Date<-data1$`Full-flowering date (DOY)`
+Year<-data1$AD
+cubic_fit=lm(Full_Blooming_Date~bs(Year, knots=c(1000,1200,1400,1600,1800)),data=data1)
+ADlims =range(data1$AD)
+AD.grid=seq (from=ADlims[1], to=ADlims[2],by=1);AD.grid
+cubic_pred=predict(cubic_fit, newdata=list(AD=AD.grid), se=T);cubic_pred
+cubic_bands=cbind(cubic_pred$fit+2*cubic_pred$se.fit, cubic_pred$fit-2*cubic_pred$se.fit)
+plot(Full_Blooming_Date~ Year, col="black", pch = 19,cex=0.6,xlab="Year",ylab="DOY",
+     cex.axis = 1.1, cex.lab = 1.2,font.lab=2)
+title("Cubic Spline",outer=F)
+lines(AD.grid, cubic_pred$fit, lwd =3, col="red")
+matlines(AD.grid, cubic_bands, lwd=2, col="red", lty=3)
+summary(cubic_fit) 
+summary(cubic_fit)$sigma
+plot(cubic_fit, 1:2)
+
+### Tried Loess, results are close, so use cubic spline
+# loess function in R produce a local polynomal fit
+# span controls the local size (similar as h in slides)
+# degree controls degrees of polynomial fit, ususally choose 1 or 3
+local_fit=loess(Full_Blooming_Date~Year, data=data1, span=.2, degree=1)
+# Predict with local lineear regression
+local_pred=predict(local_fit, newdata=data.frame(AD=AD.grid), se=T)
+# 95% confidence interval band
+local_bands=cbind(local_pred$fit+2*local_pred$se.fit, local_pred$fit-2*local_pred$se.fit)
+# Scatter plot of wage vs age
+# We add the curve fitted by local linear regression
+# We also add 95% confidence band
+plot(Year, Full_Blooming_Date, col="gray")
+title("Local Linear Regression",outer=F)
+lines(AD.grid, local_pred$fit, lwd =2, col="green")
+# plot confidence band
+matlines(AD.grid, local_bands, lwd=2, col="green", lty=3)
+
+
+# also tried polynomial, not used
+poly_fit=lm(data1$`Full-flowering date (DOY)`~poly(data1$AD,4), data=data1)
+ADlims =range(AD)
+AD.grid=seq (from=ADlims[1], to=ADlims[2])
+poly_pred=predict (poly_fit ,newdata=list(AD=AD.grid),se=TRUE)
+poly_bands=cbind(poly_pred$fit+2*poly_pred$se.fit, poly_pred$fit-2*poly_pred$se.fit)
+plot(data1$AD, data1$`Full-flowering date (DOY)`,xlim=ADlims ,cex =.5, col =" darkgrey ")
+title ("Degree-4 Polynomial",outer =F)
+lines(AD.grid, poly_pred$fit ,lwd=2, col="blue")
+matlines (AD.grid, poly_bands, lwd=1, col="blue", lty=3)
+summary(poly_fit) 
+summary(poly_fit)$sigma
+#plot(poly_fit, 1:2)
+
+########################
+
+data2<-read_excel("FullFlower.xls", sheet = 2,
+                  col_names = TRUE,na=c("","NA"))
+data2
+
+x=data2[data2$lat>28.5 & data2$lat<30,];dim(x) ## no data in the figure horizontal gap
+y=data2[data2$Fbloom_doy >62 & data2$Fbloom_doy<78,];dim(y) ## no data in the figure vertical gap
+
+data3<-data2[,c(1:5,7)]
+data3
+
+dim(data3) # 6573 by 7
+# No missing city or xyz.
+length(unique(data3$Location)) # =103
+length(unique(data3$lat)) # =111
+length(unique(data3$long)) # =109
+length(unique(data3$alt)) # = 102
+length(unique(data3$year)) # =69
+length(unique(data3$Fbloom_doy)) # =123
+
+which(duplicated(data3)) # 2 cities, 119 rows 
+# Show repeated rows 119 rows
+
+reprows<-data3 %>%
+  dplyr::group_by(Location, lat, long, alt, year) %>%
+  dplyr::summarise(n = dplyr::n(), .groups = "drop") %>%
+  dplyr::filter(n > 1L) 
+
+print (reprows,n=119) #repeated 2 cities, exactly the same
+
+data4<-data3[-which(duplicated(data3)),] 
+data4 # delete repeated -119, 6454 by 6
+
+# 466 rows repeated with the same city, year and Fbloom day
+reprows2<-data4 %>%
+  dplyr::group_by(Location, year,Fbloom_doy) %>%
+  dplyr::summarise(n = dplyr::n(), .groups = "drop") %>%
+  dplyr::filter(n > 1L) ;  #repeat 466 rows
+
+print (reprows2, n=100)
+# find the index for repeated rows with similar xyz
+
+# get means of the similar ones
+data5<-data4 %>% group_by(Location, year, Fbloom_doy) %>% summarise (
+  lat = mean(lat),
+  long = mean(long),
+  alt = mean(alt))
+data5
+
+# or delete the latter repeated
+# data4t<-data4[, c(1,5,6)];data4t
+# which(duplicated(data4t)) ##466 rows
+# delete similar repeated rows
+# data5<-data4[-which(duplicated(data4t)),];data5 #left 5988 rows  
+
+data6<-data5 %>%
+  pivot_wider(names_from = year, values_from = Fbloom_doy)
+print(data6, n=10)  #size 103 by 73, data size 103 by 69
+
+count_na <- rowSums(is.na(data6)); count_na
+misspercent<-count_na/69; misspercent
+misspercent<45/69
+
+#for reference
+sum(misspercent>=45/69)  # = 4, 103-4=99
+
+data7<-data6 [misspercent<45/69,]; data7 #wider
+
+data8<-data7 %>% pivot_longer(5:73, names_to = "year", values_to = "Fbloom_doy"); print(data8,n=100)
+length(unique(data8$lat)) # =99
+
+#final long data, size 5987 by 6
+data9<-data8[-which(is.na(data8$Fbloom_doy)),];data9 
+
+#plot (data9$Fbloom_doy~data9$lat)
+#plot(data9$Fbloom_doy~data9$year)
+
+#not used
+ggplot(data=data9)+geom_point(mapping=aes(x=lat,y=Fbloom_doy,color=factor(year)))+ 
+ # scale_fill_manual(values=wes_palette(n=2, name="GrandBudapest2"))+
+  ggtitle("Full bloom day")+ 
+  xlab("lat")+ylab("Full bloom day")+ggtitle("Full bloom day VS lat and year")
+## arashiyama
+## pick middle year
+# or use: 
+
+mid<-mean(as.numeric(data9$year));mid
+ggplot(data=data9)+geom_point(mapping=aes(x=lat,y=Fbloom_doy,color=as.numeric(year)))+ 
+  ggtitle("Full bloom day")+ 
+  xlab("lat")+ylab("Full bloom day")+ggtitle("Full bloom day VS lat and year")+
+  scale_color_gradient2( low="blue", midpoint=mid,mid="white",
+                        high="red", space ="Lab")
+
+
+mid<-mean(data9$lat)
+ggplot(data=data9)+geom_point(mapping=aes(x=year,y=Fbloom_doy,color=lat))+ 
+  ggtitle("Full bloom day")+ 
+  xlab("year")+ylab("Full bloom day")+
+  ggtitle("Full bloom day VS year and lat")+
+  scale_color_gradient2(midpoint=mid, low="red", mid="black",high="blue", space ="Lab")
+
+
+length(unique(data9$Location)) #99
+length(unique(data9$year)) #69
+
+# by location
+g9<-lm(data9$Fbloom_doy~factor(data9$Location))
+summary(g9)  
+a1<-sort(g9$coefficients) 
+length(a1)
+## middle location:
+a1[(99+1)/2-1] #Japan/Maebashi 
+
+# by year
+g10<-lm(data9$Fbloom_doy~factor(data9$year))
+summary(g10)  
+a2<-sort(g10$coefficients) 
+length(a2)
+## middle year:1961
+
+g12<-lm(data9$Fbloom_doy~relevel(factor(data9$Location), ref="Japan/Maebashi")+ factor(data9$year))
+summary(g12)
+
+## Final model
+g13<-lm(data9$Fbloom_doy~relevel(factor(data9$Location), ref="Japan/Maebashi")+relevel(factor(data9$year), ref='1961'))
+summary(g13)
+anova(g13)
+plot(g13, 1:2)
+
+beta_kyoto<-g12$coefficients[36];beta_kyoto
+interc<-g12$coefficients[1];interc    
+beta_year<-g12$coefficients[100:167]
+pred0<-interc+beta_kyoto+beta_year; pred0
+pred <- c(interc+beta_kyoto, pred0);pred
+plot(pred, type="l")  # predicted for Kyoto for all years with the additive model
+
+####Actual vs predicted
+data_kyoto<-data9[data9$Location=="Japan/Kyoto",];data_kyoto
+length(unique(data_kyoto$year)) #=69
+data_kyoton <- data_kyoto[order(data_kyoto$year),]
+RMSE<-sqrt(sum((pred-data_kyoton$Fbloom_doy)^2)/68);RMSE # = 1.62
+
+data_old<-data1[1153:1221,]
+#data_old$AD year is the same for the years in modern data
+plot(data_old$AD,data_kyoton$Fbloom_doy,type="l",col="black", lwd=1.5, xlab="Year", 
+     ylab="DOY", main="DOY at Kyoto vs Year",
+     cex.axis = 1.1, cex.lab = 1.2,font.lab=2)
+lines(data_old$AD,pred,col="red",lwd=1.5)
+legend("topright",legend=c('actual', 'predicted'),lty=c(1,1),col=c("black","red"),bg="white",lwd=2)
+
+## ordering the estimates
+a<-sort(g13$coefficients[2:99],decreasing = TRUE); a 
+b<-sort(g13$coefficients[100:167],decreasing = TRUE);b 
+c<- g13$coefficients[100:167]; c
+
+sum(a>=0)
+sum(a<=0)
+sum(b>=0)
+sum(b<=0)
