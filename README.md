@@ -10,7 +10,7 @@
 3. Non-Linear Models.
 - Study climate change using non-linear models and cherry blossom full-flowering day data.
 
-Contents include part or all of the following processes:
+## Contents include part or all of the following processes:
 * Exploratory Data Analysis
 * Data Cleaning and Wrangling
 * Data Visualization
@@ -19,8 +19,9 @@ Contents include part or all of the following processes:
 * Model Performance
 
 
-Some plots from the MLR project - Predict Medical Charges:
-
+## Some plots from the MLR project - Predict Medical Charges:
 ![color12](https://github.com/shuangyanwu/Regression_Projects/assets/112211152/490d0c5d-cd12-4294-a9f7-d2d217725a38)
+
+![charges2](https://github.com/shuangyanwu/Regression_Projects/assets/112211152/24af6636-65ee-4482-8b5e-6a28eb45abad)
 
 ![pair](https://github.com/shuangyanwu/Regression_Projects/assets/112211152/e9acc4a9-fb91-4aef-8562-c0bf331c741f)
