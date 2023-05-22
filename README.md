@@ -20,8 +20,8 @@
 
 
 ## Some plots from the MLR project - Predict Medical Charges:
-![charge1](https://github.com/shuangyanwu/Regression_Projects/assets/112211152/4e2f1da1-a65f-463b-ab37-72019d7c6d9a)
+![charge1](https://github.com/shuangyanwu/Regression_Projects/assets/112211152/cbb6ee65-d21b-40c2-afdf-f4c1e014d80f)
 
-![charges2](https://github.com/shuangyanwu/Regression_Projects/assets/112211152/24af6636-65ee-4482-8b5e-6a28eb45abad)
+![charges2](https://github.com/shuangyanwu/Regression_Projects/assets/112211152/06f1bf11-0535-44cc-ac2e-ee1b58c77e8b)
 
-![pair](https://github.com/shuangyanwu/Regression_Projects/assets/112211152/e9acc4a9-fb91-4aef-8562-c0bf331c741f)
+![pair](https://github.com/shuangyanwu/Regression_Projects/assets/112211152/b8ddf4eb-23e2-46e8-9138-2fa9a07b7f8b)
